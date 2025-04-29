@@ -134,18 +134,19 @@
     });
 
     // Handle drawing shapes
+    // Handle drawing shapes
     draw.on('mousedown', (event) => {
-        if (isEditMode===false) return; // Disable drawing in edit mode
+        if (isEditMode) return; // Disable drawing in edit mode
 
         const { offsetX, offsetY } = event;
         const fillColor = fillColorInput.value;
         const fillOpacity = parseFloat(fillOpacityInput.value);
 
-        if (selectedShape === 'circle') {
+        if (shapeSelector.value === 'circle') {
             currentShape = draw.circle(1).center(offsetX, offsetY).fill({ color: fillColor, opacity: fillOpacity }).stroke({ color: 'black', width: 1 });
-        } else if (selectedShape === 'rect') {
+        } else if (shapeSelector.value === 'rect') {
             currentShape = draw.rect(1, 1).move(offsetX, offsetY).fill({ color: fillColor, opacity: fillOpacity }).stroke({ color: 'black', width: 1 });
-        } else if (selectedShape === 'polygon') {
+        } else if (shapeSelector.value === 'polygon') {
             polygonPoints.push([offsetX, offsetY]);
             if (!currentShape) {
                 currentShape = draw.polygon(polygonPoints).fill({ color: fillColor, opacity: fillOpacity }).stroke({ color: 'black', width: 1 });
@@ -155,8 +156,22 @@
         }
     });
 
+    draw.on('mousemove', (event) => {
+        if (!currentShape || shapeSelector.value === 'polygon') return;
+        const { offsetX, offsetY } = event;
+        const bbox = currentShape.bbox();
+        if (shapeSelector.value === 'circle') {
+            const radius = Math.sqrt(Math.pow(offsetX - bbox.cx, 2) + Math.pow(offsetY - bbox.cy, 2));
+            currentShape.radius(radius);
+        } else if (shapeSelector.value === 'rect') {
+            const width = offsetX - bbox.x;
+            const height = offsetY - bbox.y;
+            currentShape.size(width, height);
+        }
+    });
+
     draw.on('mouseup', () => {
-        if (currentShape && selectedShape !== 'polygon') {
+        if (currentShape && shapeSelector.value !== 'polygon') {
             addObjectToList(currentShape);
             objectData.set(currentShape.id(), { info: 'No additional info' });
             currentShape = null;
@@ -164,7 +179,7 @@
     });
 
     draw.on('dblclick', () => {
-        if (selectedShape === 'polygon' && currentShape) {
+        if (shapeSelector.value === 'polygon' && currentShape) {
             addObjectToList(currentShape);
             objectData.set(currentShape.id(), { info: 'No additional info' });
             currentShape = null;
