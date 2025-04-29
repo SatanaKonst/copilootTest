@@ -98,6 +98,10 @@
 
 </div>
 
+<!-- Add this element near the canvas -->
+<div id="preview-tooltip" class="absolute bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-sm p-4 rounded shadow-lg hidden z-50" style="pointer-events: none; max-width: 300px;">
+</div>
+
 <script>
     // Initialize SVG.js
     const draw = SVG().addTo('#canvas').size('100%', '100%');
@@ -187,18 +191,24 @@
         }
     });
 
+
     function addObjectToList(shape) {
         const li = document.createElement('li');
         li.classList.add('flex', 'items-center', 'justify-between', 'p-2', 'bg-gray-100', 'dark:bg-gray-700', 'rounded');
         li.textContent = `${shape.type} #${shape.id()}`;
         objectList.appendChild(li);
 
+        // Enable dragging only in non-edit mode
         shape.draggable().on('dragmove', (event) => {
-            if (!isEditMode) return;
-            const { detail } = event;
-            shape.move(detail.box.x, detail.box.y);
+            if (!isEditMode) {
+                const { detail } = event;
+                shape.move(detail.box.x, detail.box.y);
+            } else {
+                event.preventDefault();
+            }
         });
 
+        // Click event for opening modal in edit mode
         shape.on('click', () => {
             if (isEditMode) {
                 const data = objectData.get(shape.id());
@@ -207,6 +217,40 @@
                 infoModal.classList.remove('hidden');
             }
         });
+
+        // Add hover preview logic
+        shape.on('mouseover', () => {
+            if (isEditMode) {
+                const data = objectData.get(shape.id());
+                showPreview(shape, data ? data.info : 'No additional info');
+            }
+        });
+
+        shape.on('mouseout', () => {
+            if (isEditMode) {
+                hidePreview();
+            }
+        });
+    }
+
+    // Function to show preview tooltip
+    function showPreview(event, shape, htmlContent) {
+        const preview = document.getElementById('preview-tooltip');
+        const { clientX: mouseX, clientY: mouseY } = event;
+
+        // Inject user-defined HTML content
+        preview.innerHTML = htmlContent;
+
+        // Position the preview near the cursor
+        preview.style.display = 'block';
+        preview.style.left = `${mouseX + 10}px`;
+        preview.style.top = `${mouseY + 10}px`;
+    }
+
+    // Function to hide preview tooltip
+    function hidePreview() {
+        const preview = document.getElementById('preview-tooltip');
+        preview.style.display = 'none';
     }
 
     modalForm.addEventListener('submit', (event) => {
